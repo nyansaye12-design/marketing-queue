@@ -1,0 +1,594 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lineup Market</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky top bar with three views (Shop, Orders, Support). Orders and Support show real queues as lanes: front = dequeue, back = enqueue. */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --surface-2:#E3EAE8; --fg:#12201C; --muted:#51635E; --line:#C9D5D1;
+  --accent:#0A6B58; --accent-fg:#FFFFFF; --warn:#9A5B00; --good:#1B7A3E; --crit:#B3261E;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1614; --surface:#16221F; --surface-2:#1F2E2A; --fg:#E6EFEC; --muted:#93A8A2; --line:#2B3D38;
+    --accent:#3CC2A4; --accent-fg:#06241D; --warn:#F0B24A; --good:#5FD08A; --crit:#FF8A80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1614; --surface:#16221F; --surface-2:#1F2E2A; --fg:#E6EFEC; --muted:#93A8A2; --line:#2B3D38;
+  --accent:#3CC2A4; --accent-fg:#06241D; --warn:#F0B24A; --good:#5FD08A; --crit:#FF8A80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--body); font-size:15px; line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left,0px)); padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:0 48px;
+}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--bg)}
+.wrap{max-width:1120px; margin:0 auto}
+button,input,select,textarea{font:inherit; color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+h1,h2,h3{font-family:var(--display); line-height:1.15; margin:0; text-wrap:balance}
+h1{font-size:clamp(26px,4.6vw,40px); font-weight:800; letter-spacing:-.02em}
+h2{font-size:20px; font-weight:800; letter-spacing:-.01em}
+h3{font-size:15px; font-weight:600}
+p{margin:0}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+
+/* top bar */
+.topbar{position:sticky; top:env(safe-area-inset-top,0px); z-index:5; background:var(--bg); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px 20px; padding-block:12px; flex-wrap:wrap}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:800; font-size:20px; letter-spacing:-.02em}
+.brand svg{width:28px; height:28px; fill:var(--accent)}
+.tabs{display:flex; gap:4px}
+.tab{background:transparent; border:1px solid transparent; border-radius:6px; padding:7px 14px; font-weight:500; color:var(--muted)}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--accent); color:var(--accent-fg)}
+.tab .badge{font-family:var(--mono); font-size:11px; margin-left:6px; opacity:.85}
+.cartbtn{margin-left:auto; display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:7px 12px; font-weight:500}
+.cartbtn:hover{border-color:var(--accent)}
+.cartbtn .n{font-family:var(--mono); background:var(--accent); color:var(--accent-fg); border-radius:99px; min-width:22px; padding:0 6px; text-align:center; font-size:12px}
+@media (max-width:640px){ .tabs{order:3; width:100%; overflow-x:auto} .tab{flex:1; white-space:nowrap} }
+
+/* buttons & fields */
+.btn{background:var(--accent); color:var(--accent-fg); border:1px solid var(--accent); border-radius:6px; padding:8px 14px; font-weight:600}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent; color:var(--fg); border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent); filter:none}
+.btn:disabled{opacity:.45; cursor:not-allowed; filter:none}
+.btn.sm{padding:5px 10px; font-size:13px}
+.field{background:var(--surface); border:1px solid var(--line); border-radius:6px; padding:8px 10px; min-width:0}
+.field:focus{border-color:var(--accent)}
+label.lbl{display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--muted)}
+
+/* shop */
+.hero{padding-block:32px 20px; display:grid; gap:10px; max-width:720px}
+.hero p{color:var(--muted); max-width:60ch}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding-block:8px 16px}
+.toolbar .field.search{flex:1 1 200px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{background:transparent; border:1px solid var(--line); border-radius:99px; padding:5px 12px; font-size:13px}
+.chip[aria-pressed="true"]{background:var(--fg); color:var(--bg); border-color:var(--fg)}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:8px; overflow:hidden; display:flex; flex-direction:column; min-width:0}
+.tile{aspect-ratio:4/3; max-width:100%; display:grid; place-items:center;
+  background:color-mix(in srgb, hsl(var(--h) 60% 50%) 16%, var(--surface));
+  color:color-mix(in srgb, hsl(var(--h) 65% 42%) 70%, var(--fg))}
+.tile svg{width:42%; max-width:92px}
+.card-body{padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px; flex:1}
+.card-body .meta{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted)}
+.price{font-family:var(--mono); font-weight:500; font-size:16px; font-variant-numeric:tabular-nums}
+.card-foot{margin-top:auto; padding-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+.empty{color:var(--muted); padding-block:24px}
+
+/* sections */
+.section{padding-block:28px 8px; display:grid; gap:14px}
+.section-head{display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:8px 16px}
+.section-head p{color:var(--muted); max-width:62ch; font-size:14px}
+.controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); border:1px solid var(--line); background:var(--surface); border-radius:8px}
+.stat{padding:12px 14px; border-right:1px solid var(--line); min-width:0}
+.stat:last-child{border-right:0}
+.stat .v{font-family:var(--mono); font-size:22px; font-weight:500; overflow-wrap:anywhere}
+@media (max-width:560px){ .stat{border-right:0; border-bottom:1px solid var(--line)} .stat:last-child{border-bottom:0} }
+
+/* queue lanes */
+.lane-wrap{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px}
+.lane-caps{display:flex; justify-content:space-between; gap:12px; font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase; padding-bottom:8px}
+.lane{display:flex; gap:10px; overflow-x:auto; padding-block:4px 10px; min-height:96px}
+.slot{flex:0 0 auto; width:128px; border:1px solid var(--line); background:var(--bg); border-radius:6px; padding:8px 10px; display:grid; gap:2px; align-content:start}
+.slot.is-head{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)}
+.slot.urgent{border-color:var(--crit)}
+.slot .tag{font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:var(--accent); height:14px}
+.slot.urgent .tag{color:var(--crit)}
+.slot .id{font-family:var(--mono); font-weight:500}
+.slot .sub{font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lane-empty{color:var(--muted); font-size:14px; align-self:center; padding-inline:4px}
+
+/* workers */
+.workers{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px}
+.worker{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:grid; gap:6px; min-width:0}
+.worker .top{display:flex; justify-content:space-between; gap:8px; align-items:baseline}
+.worker .job{font-family:var(--mono); font-size:14px}
+.bar{height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden}
+.bar i{display:block; height:100%; width:var(--p); background:var(--accent); transition:width .45s linear}
+@media (prefers-reduced-motion:reduce){ .bar i{transition:none} }
+
+/* rows */
+.rows{background:var(--surface); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.row{display:grid; grid-template-columns:92px 1fr 100px 120px 130px; gap:8px 12px; padding:10px 14px; border-top:1px solid var(--line); align-items:center; font-size:14px}
+.row:first-child{border-top:0}
+.row.head{font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--surface-2)}
+.row .id{font-family:var(--mono); font-weight:500}
+.row .num{text-align:right}
+.row>*{min-width:0}
+.sampletag{font-family:var(--mono); font-size:10px; color:var(--muted); border:1px solid var(--line); border-radius:3px; padding:0 4px; margin-left:6px}
+@media (max-width:720px){
+  .row{grid-template-columns:1fr auto; }
+  .row.head{display:none}
+  .row .num{text-align:left}
+}
+.pill{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:99px; width:max-content;
+  background:color-mix(in srgb, var(--c) 14%, transparent); color:var(--c)}
+.pill::before{content:""; width:6px; height:6px; border-radius:50%; background:var(--c)}
+.pill.queued{--c:var(--muted)} .pill.packing,.pill.working{--c:var(--warn)} .pill.shipped,.pill.resolved{--c:var(--good)} .pill.urgent{--c:var(--crit)} .pill.normal{--c:var(--muted)}
+
+/* ops log */
+.log{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 14px; font-family:var(--mono); font-size:12px; max-height:200px; overflow:auto; list-style:none; margin:0; display:grid; gap:3px}
+.log li{color:var(--muted)} .log li:first-child{color:var(--fg)}
+.two{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px}
+.two>*{min-width:0}
+
+/* support form */
+.form{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px; display:flex; flex-wrap:wrap; gap:12px; align-items:end}
+.form .grow{flex:1 1 260px; min-width:0}
+.form .grow .field{width:100%}
+.err{color:var(--crit); font-size:13px; min-height:18px}
+
+/* drawer */
+.scrim{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:20}
+.drawer{position:fixed; top:0; right:0; bottom:0; width:min(420px,100%); z-index:21; background:var(--surface); border-left:1px solid var(--line);
+  display:flex; flex-direction:column;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) 16px; gap:12px}
+.drawer-head{display:flex; justify-content:space-between; align-items:center}
+.cartlist{flex:1; overflow-y:auto; display:grid; gap:10px; align-content:start}
+.line{display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; padding-bottom:10px; border-bottom:1px solid var(--line)}
+.line .mini{width:44px; height:44px; border-radius:6px; display:grid; place-items:center;
+  background:color-mix(in srgb, hsl(var(--h) 60% 50%) 16%, var(--surface)); color:color-mix(in srgb, hsl(var(--h) 65% 42%) 70%, var(--fg))}
+.line .mini svg{width:26px}
+.qty{display:inline-flex; align-items:center; gap:6px; margin-top:4px}
+.qty button{width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:transparent; line-height:1}
+.qty button:hover{border-color:var(--accent)}
+.sum{display:grid; gap:6px; border-top:1px solid var(--line); padding-top:12px}
+.sum .r{display:flex; justify-content:space-between}
+.sum .total{font-weight:600; font-size:17px}
+.sum select{width:100%}
+
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(16px + env(safe-area-inset-bottom,0px)); z-index:30;
+  background:var(--fg); color:var(--bg); padding:10px 16px; border-radius:6px; font-size:14px; max-width:min(92vw,460px); box-shadow:0 6px 24px rgba(0,0,0,.25)}
+footer{padding-block:32px 0; color:var(--muted); font-size:13px}
+</style>
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="1.5" y="9" width="6" height="10" rx="1.5"/><rect x="11" y="9" width="6" height="10" rx="1.5" opacity=".65"/><rect x="20.5" y="9" width="6" height="10" rx="1.5" opacity=".35"/></svg>
+      Lineup Market
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-shop" data-tab="shop" aria-selected="true">Shop</button>
+      <button class="tab" role="tab" id="tab-orders" data-tab="orders" aria-selected="false">Orders<span class="badge" id="b-orders">0</span></button>
+      <button class="tab" role="tab" id="tab-support" data-tab="support" aria-selected="false">Support<span class="badge" id="b-support">0</span></button>
+    </nav>
+    <button class="cartbtn" id="open-cart" type="button" aria-label="Open cart">Cart <span class="n" id="cartcount">0</span></button>
+  </header>
+
+  <main>
+    <!-- SHOP -->
+    <section id="panel-shop" role="tabpanel" aria-labelledby="tab-shop">
+      <div class="hero">
+        <span class="eyebrow">Accra · same-week delivery</span>
+        <h1>Everyday goods, delivered across Accra</h1>
+        <p>Every order joins a first-in, first-out queue. Check out, then open Orders to watch yours move from the back of the line to a packer.</p>
+      </div>
+      <div class="toolbar">
+        <input class="field search" id="search" type="search" placeholder="Search products" aria-label="Search products">
+        <div class="chips" id="chips" role="group" aria-label="Category"></div>
+        <select class="field" id="sort" aria-label="Sort products">
+          <option value="featured">Featured</option>
+          <option value="low">Price: low to high</option>
+          <option value="high">Price: high to low</option>
+          <option value="rating">Top rated</option>
+        </select>
+        <span class="muted mono" id="count" style="font-size:12px"></span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <!-- ORDERS -->
+    <section id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" hidden>
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h2>Order fulfillment queue</h2>
+            <p>New orders are added at the back with enqueue(). Whenever a packer is free, the order at the front leaves with dequeue(). Nobody skips ahead.</p>
+          </div>
+          <div class="controls">
+            <button class="btn ghost sm" id="run-toggle" type="button" aria-pressed="false">Resume</button>
+            <select class="field" id="speed" aria-label="Packing speed">
+              <option value="1">1× speed</option><option value="2">2× speed</option><option value="4">4× speed</option>
+            </select>
+            <button class="btn ghost sm" id="peek" type="button">Peek</button>
+            <button class="btn sm" id="step" type="button">Dequeue next</button>
+          </div>
+        </div>
+        <div class="stats" id="ostats"></div>
+        <div class="lane-wrap">
+          <div class="lane-caps"><span>◂ Front · dequeue() leaves here</span><span>Back · enqueue() joins here ▸</span></div>
+          <div class="lane" id="olane" aria-live="polite"></div>
+        </div>
+        <h3>Packers</h3>
+        <div class="workers" id="packers"></div>
+        <h3>All orders</h3>
+        <div class="rows" id="orows"></div>
+        <h3>Queue operations</h3>
+        <ul class="log" id="log"></ul>
+      </div>
+    </section>
+
+    <!-- SUPPORT -->
+    <section id="panel-support" role="tabpanel" aria-labelledby="tab-support" hidden>
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <h2>Support tickets</h2>
+            <p>Two queues feed two agents. Urgent tickets (payment problems, missing orders) are always served first. Within each queue, the oldest ticket goes first.</p>
+          </div>
+        </div>
+        <form class="form" id="tform" novalidate>
+          <div class="grow">
+            <label class="lbl" for="tsubject">What do you need help with?</label>
+            <input class="field" id="tsubject" type="text" maxlength="90" placeholder="e.g. Payment taken but no confirmation">
+          </div>
+          <div>
+            <label class="lbl" for="tpriority">Priority</label>
+            <select class="field" id="tpriority"><option value="normal">Standard</option><option value="urgent">Urgent</option></select>
+          </div>
+          <button class="btn" type="submit">Submit ticket</button>
+          <div class="err" id="terr" role="alert" style="flex-basis:100%"></div>
+        </form>
+        <div class="stats" id="sstats"></div>
+        <div class="two">
+          <div class="lane-wrap">
+            <div class="lane-caps"><span>Urgent queue</span><span>front ◂</span></div>
+            <div class="lane" id="ulane"></div>
+          </div>
+          <div class="lane-wrap">
+            <div class="lane-caps"><span>Standard queue</span><span>front ◂</span></div>
+            <div class="lane" id="nlane"></div>
+          </div>
+        </div>
+        <h3>Agents</h3>
+        <div class="workers" id="agents"></div>
+        <h3>All tickets</h3>
+        <div class="rows" id="trows"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Lineup Market is a demo store built to show queues at work. Prices are in Ghana cedis (GH₵) and no payment is taken. The first orders and tickets in each list are examples.</footer>
+</div>
+
+<!-- CART DRAWER -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Your cart" hidden>
+  <div class="drawer-head"><h2>Your cart</h2><button class="btn ghost sm" id="close-cart" type="button">Close</button></div>
+  <div class="cartlist" id="cartlist"></div>
+  <div class="sum">
+    <div><label class="lbl" for="area">Delivery area</label><select class="field" id="area"></select></div>
+    <div class="r"><span class="muted">Subtotal</span><span class="mono" id="subtotal"></span></div>
+    <div class="r"><span class="muted">Delivery</span><span class="mono" id="fee"></span></div>
+    <div class="r total"><span>Total</span><span class="mono" id="total"></span></div>
+    <button class="btn" id="checkout" type="button">Place order</button>
+  </div>
+</aside>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- The queue: a linked list with O(1) enqueue and dequeue ---------- */
+class QNode{ constructor(v){ this.value=v; this.next=null; } }
+class Queue{
+  constructor(){ this.head=null; this.tail=null; this.length=0; }
+  enqueue(v){ const n=new QNode(v); if(this.tail){ this.tail.next=n; } else { this.head=n; } this.tail=n; this.length++; return this.length; }
+  dequeue(){ if(!this.head) return null; const n=this.head; this.head=n.next; if(!this.head) this.tail=null; this.length--; return n.value; }
+  peek(){ return this.head ? this.head.value : null; }
+  isEmpty(){ return this.length===0; }
+  size(){ return this.length; }
+  toArray(){ const a=[]; let c=this.head; while(c){ a.push(c.value); c=c.next; } return a; }
+}
+
+/* ---------- Data ---------- */
+const ICONS={
+  headphones:'<path d="M10 28v-4a14 14 0 0 1 28 0v4"/><rect x="8" y="28" width="7" height="12" rx="3"/><rect x="33" y="28" width="7" height="12" rx="3"/>',
+  mug:'<path d="M12 14h20v18a6 6 0 0 1-6 6h-8a6 6 0 0 1-6-6z"/><path d="M32 18h4a4 4 0 0 1 0 10h-4"/>',
+  backpack:'<rect x="12" y="14" width="24" height="26" rx="8"/><path d="M18 14v-2a6 6 0 0 1 12 0v2"/><rect x="18" y="26" width="12" height="8" rx="2"/>',
+  lamp:'<path d="M16 8h16l6 16H10z"/><path d="M24 24v14M16 40h16"/>',
+  keyboard:'<rect x="6" y="14" width="36" height="20" rx="3"/><path d="M12 21h2M18 21h2M24 21h2M30 21h2M36 21h0M14 28h20"/>',
+  bottle:'<path d="M20 6h8v6l3 4v22a3 3 0 0 1-3 3H20a3 3 0 0 1-3-3V16l3-4z"/><path d="M17 24h14"/>',
+  notebook:'<rect x="12" y="6" width="24" height="36" rx="3"/><path d="M18 6v36M23 15h8M23 21h8"/>',
+  sneaker:'<path d="M6 32c0-6 4-8 8-8l6-8 6 6h6c4 0 8 4 8 10v2H6z"/><path d="M6 38h36"/>',
+  speaker:'<rect x="12" y="6" width="24" height="36" rx="5"/><circle cx="24" cy="28" r="7"/><circle cx="24" cy="15" r="2"/>',
+  watch:'<rect x="14" y="12" width="20" height="24" rx="6"/><path d="M18 12l2-6h8l2 6M18 36l2 6h8l2-6M24 19v6l4 3"/>'
+};
+const icon=n=>'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[n]+'</svg>';
+const PRODUCTS=[
+  {id:1,name:'Wireless Headphones',cat:'Electronics',price:450,rating:4.6,reviews:212,icon:'headphones',h:200},
+  {id:2,name:'Enamel Camp Mug',cat:'Home',price:65,rating:4.4,reviews:98,icon:'mug',h:28},
+  {id:3,name:'Commuter Backpack',cat:'Fashion',price:320,rating:4.7,reviews:341,icon:'backpack',h:150},
+  {id:4,name:'Desk Lamp, Warm Light',cat:'Home',price:180,rating:4.3,reviews:76,icon:'lamp',h:45},
+  {id:5,name:'Compact Mechanical Keyboard',cat:'Electronics',price:540,rating:4.8,reviews:189,icon:'keyboard',h:260},
+  {id:6,name:'Steel Water Bottle 750 ml',cat:'Home',price:95,rating:4.5,reviews:402,icon:'bottle',h:185},
+  {id:7,name:'A5 Dotted Notebook',cat:'Stationery',price:40,rating:4.6,reviews:157,icon:'notebook',h:12},
+  {id:8,name:'Everyday Sneakers',cat:'Fashion',price:380,rating:4.2,reviews:233,icon:'sneaker',h:340},
+  {id:9,name:'Bluetooth Speaker',cat:'Electronics',price:260,rating:4.4,reviews:128,icon:'speaker',h:225},
+  {id:10,name:'Fitness Watch',cat:'Electronics',price:690,rating:4.1,reviews:64,icon:'watch',h:300}
+];
+const CATS=['All','Electronics','Home','Fashion','Stationery'];
+const AREAS={'Osu':8,'East Legon':12,'Madina':10,'Tema':15,'Kumasi':35};
+
+/* ---------- State ---------- */
+const orders=new Map(), orderQ=new Queue();
+const tickets=new Map(), urgentQ=new Queue(), normalQ=new Queue();
+const packers=[1,2,3].map(i=>({name:'Packer '+i, job:null, p:0, need:0}));
+const agents=[1,2].map(i=>({name:'Agent '+i, job:null, p:0, need:0}));
+const log=[]; const cart=new Map();
+let oseq=1041, tseq=200, running=false, speed=1, started=false, cat='All', query='', sort='featured', toastTimer=null;
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'GH₵ '+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+const byId=id=>PRODUCTS.find(p=>p.id===id);
+const itemCount=o=>o.items.reduce((s,i)=>s+i.qty,0);
+const logOp=t=>{ log.unshift(t); if(log.length>40) log.pop(); };
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.hidden=false;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ t.hidden=true; },3800);
+}
+
+/* ---------- Shop ---------- */
+function card(p){
+  return '<article class="card"><div class="tile" style="--h:'+p.h+'">'+icon(p.icon)+'</div><div class="card-body">'+
+    '<h3>'+esc(p.name)+'</h3><div class="meta"><span>'+esc(p.cat)+'</span><span class="mono">'+p.rating.toFixed(1)+' ('+p.reviews+')</span></div>'+
+    '<div class="card-foot"><span class="price">'+money(p.price)+'</span><button class="btn sm" type="button" data-add="'+p.id+'">Add</button></div></div></article>';
+}
+function renderCatalog(){
+  const q=query.trim().toLowerCase();
+  const list=PRODUCTS.filter(p=>(cat==='All'||p.cat===cat)&&(!q||p.name.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
+  if(sort==='low') list.sort((a,b)=>a.price-b.price);
+  if(sort==='high') list.sort((a,b)=>b.price-a.price);
+  if(sort==='rating') list.sort((a,b)=>b.rating-a.rating);
+  $('#grid').innerHTML=list.length?list.map(card).join(''):'<p class="empty">No products match “'+esc(query)+'”. Try another word or clear the category.</p>';
+  $('#count').textContent=list.length+(list.length===1?' product':' products');
+}
+function renderChips(){
+  $('#chips').innerHTML=CATS.map(c=>'<button class="chip" type="button" data-cat="'+c+'" aria-pressed="'+(c===cat)+'">'+c+'</button>').join('');
+}
+
+/* ---------- Cart ---------- */
+function totals(){
+  let sub=0; cart.forEach((q,id)=>{ sub+=byId(id).price*q; });
+  const fee=cart.size?AREAS[$('#area').value]:0;
+  return {sub,fee,total:sub+fee};
+}
+function renderCart(){
+  const n=[...cart.values()].reduce((a,b)=>a+b,0);
+  $('#cartcount').textContent=n;
+  $('#cartlist').innerHTML=cart.size?[...cart].map(([id,q])=>{
+    const p=byId(id);
+    return '<div class="line"><div class="mini" style="--h:'+p.h+'">'+icon(p.icon)+'</div><div><div style="font-weight:600">'+esc(p.name)+'</div>'+
+      '<div class="qty"><button type="button" data-dec="'+id+'" aria-label="Remove one">−</button><span class="mono">'+q+'</span><button type="button" data-inc="'+id+'" aria-label="Add one">+</button></div></div>'+
+      '<span class="mono">'+money(p.price*q)+'</span></div>';
+  }).join(''):'<p class="empty">Your cart is empty. Add something from the shop.</p>';
+  const t=totals();
+  $('#subtotal').textContent=money(t.sub); $('#fee').textContent=money(t.fee); $('#total').textContent=money(t.total);
+  $('#checkout').disabled=!cart.size;
+}
+function changeQty(id,d){
+  const q=(cart.get(id)||0)+d;
+  if(q<=0) cart.delete(id); else cart.set(id,q);
+  renderCart();
+}
+function openCart(){ $('#scrim').hidden=false; $('#drawer').hidden=false; $('#close-cart').focus(); }
+function closeCart(){ $('#scrim').hidden=true; $('#drawer').hidden=true; }
+
+/* ---------- Orders (enqueue / dequeue) ---------- */
+function placeOrder(items,area,sample){
+  const sub=items.reduce((s,i)=>s+byId(i.pid).price*i.qty,0);
+  const o={id:'LM-'+(++oseq), items, area, total:sub+AREAS[area], status:'queued', sample:!!sample};
+  orders.set(o.id,o);
+  const size=orderQ.enqueue(o.id);
+  logOp('enqueue('+o.id+') → size '+size);
+  return o;
+}
+function startPack(w){
+  const id=orderQ.dequeue(); const o=orders.get(id);
+  o.status='packing'; w.job=id; w.p=0; w.need=3+itemCount(o)*1.5;
+  logOp('dequeue() → '+id+' for '+w.name+' · size '+orderQ.size());
+}
+function checkout(){
+  if(!cart.size) return;
+  const items=[...cart].map(([pid,qty])=>({pid,qty}));
+  const o=placeOrder(items,$('#area').value,false);
+  cart.clear(); renderCart(); closeCart(); setTab('orders');
+  const place=orderQ.toArray().indexOf(o.id)+1;
+  toast(place>0?'Order '+o.id+' placed. You are number '+place+' in the queue.':'Order '+o.id+' placed and already with a packer.');
+}
+
+/* ---------- Tickets (two queues, urgent first) ---------- */
+function addTicket(subject,priority,sample){
+  const t={id:'T-'+(++tseq), subject, priority, status:'queued', sample:!!sample};
+  tickets.set(t.id,t);
+  const q=priority==='urgent'?urgentQ:normalQ;
+  const size=q.enqueue(t.id);
+  logOp('enqueue('+t.id+') → '+priority+' queue, size '+size);
+  return t;
+}
+function startTicket(a){
+  const fromUrgent=!urgentQ.isEmpty();
+  const id=(fromUrgent?urgentQ:normalQ).dequeue(); const t=tickets.get(id);
+  t.status='working'; a.job=id; a.p=0; a.need=fromUrgent?5:7;
+  logOp('dequeue() → '+id+' ('+(fromUrgent?'urgent':'standard')+') for '+a.name);
+}
+
+/* ---------- Simulation ---------- */
+function step(dt){
+  packers.forEach(w=>{
+    if(w.job){ w.p+=dt; if(w.p>=w.need){ const o=orders.get(w.job); o.status='shipped'; logOp(w.name+' shipped '+o.id); w.job=null; w.p=0; } }
+    if(!w.job && !orderQ.isEmpty()) startPack(w);
+  });
+  agents.forEach(a=>{
+    if(a.job){ a.p+=dt; if(a.p>=a.need){ const t=tickets.get(a.job); t.status='resolved'; logOp(a.name+' resolved '+t.id); a.job=null; a.p=0; } }
+    if(!a.job && (!urgentQ.isEmpty()||!normalQ.isEmpty())) startTicket(a);
+  });
+  renderLive();
+}
+setInterval(()=>{ if(running) step(0.5*speed); },500);
+
+/* ---------- Rendering of live queue views ---------- */
+function slotTag(i,n,urgent){
+  const parts=[]; if(i===0) parts.push('HEAD'); if(i===n-1) parts.push('TAIL');
+  return '<span class="tag">'+parts.join(' · ')+'</span>';
+}
+function orderLane(){
+  const arr=orderQ.toArray();
+  if(!arr.length) return '<div class="lane-empty">The queue is empty. New orders appear here at the back.</div>';
+  return arr.map((id,i)=>{ const o=orders.get(id);
+    return '<div class="slot'+(i===0?' is-head':'')+'">'+slotTag(i,arr.length)+'<span class="id">'+o.id+'</span><span class="sub">'+itemCount(o)+(itemCount(o)===1?' item':' items')+'</span><span class="sub">'+esc(o.area)+'</span></div>';
+  }).join('');
+}
+function ticketLane(q,urgent){
+  const arr=q.toArray();
+  if(!arr.length) return '<div class="lane-empty">No '+(urgent?'urgent':'standard')+' tickets waiting.</div>';
+  return arr.map((id,i)=>{ const t=tickets.get(id);
+    return '<div class="slot'+(urgent?' urgent':'')+(i===0?' is-head':'')+'">'+slotTag(i,arr.length)+'<span class="id">'+t.id+'</span><span class="sub" title="'+esc(t.subject)+'">'+esc(t.subject)+'</span></div>';
+  }).join('');
+}
+function workerCards(list,kind){
+  return list.map(w=>{
+    const pct=w.job?Math.min(100,Math.round(w.p/w.need*100)):0;
+    return '<div class="worker"><div class="top"><h3>'+w.name+'</h3><span class="pill '+(w.job?(kind==='o'?'packing':'working'):'queued')+'">'+(w.job?(kind==='o'?'Packing':'Working'):'Idle')+'</span></div>'+
+      '<div class="job">'+(w.job?w.job:'Waiting for the next '+(kind==='o'?'order':'ticket'))+'</div><div class="bar" aria-hidden="true"><i style="--p:'+pct+'%"></i></div></div>';
+  }).join('');
+}
+function stat(l,v){ return '<div class="stat"><div class="eyebrow">'+l+'</div><div class="v">'+v+'</div></div>'; }
+function renderLive(){
+  const waiting=orderQ.size(), shipped=[...orders.values()].filter(o=>o.status==='shipped').length;
+  const next=orderQ.peek();
+  const est=waiting?Math.ceil(waiting*6/packers.length/speed)+'s':'None';
+  $('#ostats').innerHTML=stat('Waiting · size()',waiting)+stat('Next up · peek()',next||'None')+stat('Est. wait',est)+stat('Shipped',shipped);
+  $('#olane').innerHTML=orderLane();
+  $('#packers').innerHTML=workerCards(packers,'o');
+  const pos=orderQ.toArray();
+  const list=[...orders.values()].reverse();
+  $('#orows').innerHTML='<div class="row head"><span>Order</span><span>Items</span><span>Area</span><span class="num">Total</span><span>Status</span></div>'+
+    list.map(o=>{ const idx=pos.indexOf(o.id);
+      const label=o.status==='queued'?'In queue · #'+(idx+1):o.status==='packing'?'Packing':'Shipped';
+      return '<div class="row"><span class="id">'+o.id+(o.sample?'<span class="sampletag">example</span>':'')+'</span>'+
+        '<span>'+o.items.map(i=>esc(byId(i.pid).name)+(i.qty>1?' × '+i.qty:'')).join(', ')+'</span>'+
+        '<span class="muted">'+esc(o.area)+'</span><span class="num mono">'+money(o.total)+'</span><span><span class="pill '+o.status+'">'+label+'</span></span></div>';
+    }).join('');
+  $('#log').innerHTML=log.map(l=>'<li>'+esc(l)+'</li>').join('')||'<li>No operations yet.</li>';
+  $('#b-orders').textContent=waiting;
+
+  const tw=urgentQ.size()+normalQ.size(), res=[...tickets.values()].filter(t=>t.status==='resolved').length;
+  $('#sstats').innerHTML=stat('Urgent waiting',urgentQ.size())+stat('Standard waiting',normalQ.size())+stat('Next up',urgentQ.peek()||normalQ.peek()||'None')+stat('Resolved',res);
+  $('#ulane').innerHTML=ticketLane(urgentQ,true);
+  $('#nlane').innerHTML=ticketLane(normalQ,false);
+  $('#agents').innerHTML=workerCards(agents,'t');
+  $('#trows').innerHTML='<div class="row head"><span>Ticket</span><span>Subject</span><span>Priority</span><span class="num"></span><span>Status</span></div>'+
+    [...tickets.values()].reverse().map(t=>'<div class="row"><span class="id">'+t.id+(t.sample?'<span class="sampletag">example</span>':'')+'</span><span>'+esc(t.subject)+'</span>'+
+      '<span><span class="pill '+t.priority+'">'+(t.priority==='urgent'?'Urgent':'Standard')+'</span></span><span class="num"></span>'+
+      '<span><span class="pill '+t.status+'">'+(t.status==='queued'?'Waiting':t.status==='working'?'Being handled':'Resolved')+'</span></span></div>').join('');
+  $('#b-support').textContent=tw;
+  const rt=$('#run-toggle'); rt.textContent=running?'Pause':'Resume'; rt.setAttribute('aria-pressed',String(running));
+}
+
+/* ---------- Tabs ---------- */
+function setTab(name){
+  ['shop','orders','support'].forEach(t=>{
+    $('#panel-'+t).hidden=t!==name;
+    $('#tab-'+t).setAttribute('aria-selected',String(t===name));
+  });
+  if(name!=='shop' && !started){ started=true; running=true; }
+  renderLive();
+  window.scrollTo({top:0});
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-add],[data-inc],[data-dec],[data-cat],[data-tab]'); if(!t) return;
+  if(t.dataset.add){ const id=+t.dataset.add; changeQty(id,1); toast(byId(id).name+' added to your cart.'); }
+  else if(t.dataset.inc) changeQty(+t.dataset.inc,1);
+  else if(t.dataset.dec) changeQty(+t.dataset.dec,-1);
+  else if(t.dataset.cat){ cat=t.dataset.cat; renderChips(); renderCatalog(); }
+  else if(t.dataset.tab) setTab(t.dataset.tab);
+});
+$('#open-cart').addEventListener('click',openCart);
+$('#close-cart').addEventListener('click',closeCart);
+$('#scrim').addEventListener('click',closeCart);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('#drawer').hidden) closeCart(); });
+$('#checkout').addEventListener('click',checkout);
+$('#area').addEventListener('change',renderCart);
+$('#search').addEventListener('input',e=>{ query=e.target.value; renderCatalog(); });
+$('#sort').addEventListener('change',e=>{ sort=e.target.value; renderCatalog(); });
+$('#run-toggle').addEventListener('click',()=>{ started=true; running=!running; renderLive(); });
+$('#speed').addEventListener('change',e=>{ speed=+e.target.value; renderLive(); });
+$('#peek').addEventListener('click',()=>{
+  const n=orderQ.peek(); logOp('peek() → '+(n||'empty')+' (not removed)'); renderLive();
+  toast(n?'Next in line is '+n+'. peek() does not remove it.':'The queue is empty.');
+});
+$('#step').addEventListener('click',()=>{
+  if(orderQ.isEmpty()){ toast('The queue is empty. Place an order first.'); return; }
+  const w=packers.find(p=>!p.job);
+  if(!w){ toast('All packers are busy. Wait for one to finish.'); return; }
+  startPack(w); renderLive();
+});
+$('#tform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const s=$('#tsubject').value.trim();
+  if(!s){ $('#terr').textContent='Describe the problem so an agent knows where to start.'; $('#tsubject').focus(); return; }
+  $('#terr').textContent='';
+  const t=addTicket(s,$('#tpriority').value,false);
+  $('#tsubject').value=''; renderLive();
+  const pos=(t.priority==='urgent'?urgentQ:normalQ).toArray().indexOf(t.id);
+  toast(pos>=0?'Ticket '+t.id+' received. '+pos+' ahead of you in the '+(t.priority==='urgent'?'urgent':'standard')+' queue.':'Ticket '+t.id+' is already being handled.');
+});
+
+/* ---------- Boot ---------- */
+$('#area').innerHTML=Object.keys(AREAS).map(a=>'<option value="'+a+'">'+a+' · '+money(AREAS[a])+'</option>').join('');
+renderChips(); renderCatalog(); renderCart();
+[
+  [[[1,1],[7,2]],'Osu'], [[[6,1]],'East Legon'], [[[3,1],[2,1]],'Madina'], [[[5,1]],'Tema'],
+  [[[9,1],[4,1]],'Kumasi'], [[[8,1]],'Osu'], [[[10,1],[7,1]],'East Legon']
+].forEach(([its,area])=>placeOrder(its.map(([pid,qty])=>({pid,qty})),area,true));
+addTicket('Where is my order from last Tuesday?','normal',true);
+addTicket('Payment taken but no confirmation','urgent',true);
+addTicket('Change delivery area for my order','normal',true);
+log.length=0; logOp('7 example orders enqueued. Open Orders to start the packers.');
+renderLive();
+})();
+</script>
+
+</body></html>
